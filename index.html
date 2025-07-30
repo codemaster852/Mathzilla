@@ -1,152 +1,372 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MathZilla - Conquer Math from Zero to Fluency</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+        /* Use Inter for English and Cairo for Arabic */
+        :lang(en) { font-family: 'Inter', sans-serif; }
+        :lang(ar) { font-family: 'Cairo', sans-serif; }
+        
+        body { scroll-behavior: smooth; }
+
+        /* Custom styles for chat bubbles and loading indicator */
+        .chat-bubble-user { background-color: #4f46e5; color: white; }
+        .chat-bubble-ai { background-color: #e5e7eb; color: #1f2937; }
+        .lds-ellipsis { display: inline-block; position: relative; width: 80px; height: 20px; }
+        .lds-ellipsis div { position: absolute; top: 5px; width: 13px; height: 13px; border-radius: 50%; background: #4f46e5; animation-timing-function: cubic-bezier(0, 1, 1, 0); }
+        .lds-ellipsis div:nth-child(1) { left: 8px; animation: lds-ellipsis1 0.6s infinite; }
+        .lds-ellipsis div:nth-child(2) { left: 8px; animation: lds-ellipsis2 0.6s infinite; }
+        .lds-ellipsis div:nth-child(3) { left: 32px; animation: lds-ellipsis2 0.6s infinite; }
+        .lds-ellipsis div:nth-child(4) { left: 56px; animation: lds-ellipsis3 0.6s infinite; }
+        @keyframes lds-ellipsis1 { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        @keyframes lds-ellipsis3 { 0% { transform: scale(1); } 100% { transform: scale(0); } }
+        @keyframes lds-ellipsis2 { 0% { transform: translate(0, 0); } 100% { transform: translate(24px, 0); } }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <!-- Header -->
-    <header class="bg-white shadow-md sticky top-0 z-50">
-        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="#" class="text-3xl font-bold text-indigo-600">MathZilla</a>
-            <div class="hidden md:flex items-center space-x-6">
-                <a href="#features" class="text-gray-600 hover:text-indigo-600">Features</a>
-                <a href="#levels" class="text-gray-600 hover:text-indigo-600">Levels</a>
-                <a href="#community" class="text-gray-600 hover:text-indigo-600">Community</a>
-                <a href="#" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Sign Up</a>
+    <!-- Authentication Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md m-4">
+            <!-- Auth Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="auth-title" class="text-2xl font-bold" data-translate="auth_login_title">Login to MathZilla</h2>
+                <button id="close-modal-button" class="text-gray-500 hover:text-gray-800">&times;</button>
             </div>
-            <button class="md:hidden flex items-center">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-            </button>
-        </nav>
-    </header>
-
-    <!-- Hero Section -->
-    <section class="bg-indigo-600 text-white">
-        <div class="container mx-auto px-6 py-20 text-center">
-            <h1 class="text-5xl font-extrabold mb-4">Welcome to MathZilla</h1>
-            <p class="text-xl mb-8">Your ultimate journey to mastering mathematics, from basic arithmetic to advanced calculus.</p>
-            <a href="#" class="bg-white text-indigo-600 font-bold py-3 px-8 rounded-full hover:bg-gray-200">Start Your Adventure</a>
+            <!-- Auth Error Message -->
+            <div id="auth-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 hidden" role="alert"></div>
+            <!-- Auth Form -->
+            <form id="auth-form">
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium text-gray-700" data-translate="auth_email">Email Address</label>
+                    <input type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-700" data-translate="auth_password">Password</label>
+                    <input type="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button type="submit" id="auth-submit-button" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700" data-translate="auth_login_btn">Login</button>
+            </form>
+            <!-- Toggle between Login/Sign Up -->
+            <p class="text-center text-sm text-gray-600 mt-4">
+                <span id="auth-toggle-text" data-translate="auth_no_account">Don't have an account?</span>
+                <button id="auth-toggle-button" class="font-medium text-indigo-600 hover:text-indigo-500" data-translate="auth_signup_link">Sign up</button>
+            </p>
         </div>
-    </section>
+    </div>
 
-    <!-- Learning Journey (Levels) -->
-    <section id="levels" class="py-20">
-        <div class="container mx-auto px-6">
-            <h2 class="text-4xl font-bold text-center mb-12">Your Learning Journey</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Zilla Zero -->
-                <div class="bg-white p-8 rounded-lg shadow-lg">
-                    <h3 class="text-2xl font-bold mb-4">Zilla Zero</h3>
-                    <p class="text-gray-600">Basic arithmetic & number sense. The perfect starting point.</p>
+    <!-- App Wrapper -->
+    <div id="app-container">
+        <!-- Header -->
+        <header class="bg-white shadow-md sticky top-0 z-40">
+            <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+                <a href="#" class="text-3xl font-bold text-indigo-600">MathZilla</a>
+                <div class="flex items-center space-x-4">
+                    <!-- Language Switcher -->
+                    <select id="language-switcher" class="border-gray-300 rounded-md">
+                        <option value="en">English</option>
+                        <option value="ar">العربية</option>
+                    </select>
+                    <!-- Auth Buttons -->
+                    <div id="auth-buttons">
+                        <button id="login-button" class="hidden md:inline-block text-gray-600 hover:text-indigo-600" data-translate="nav_login">Login</button>
+                        <button id="signup-button" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700" data-translate="nav_signup">Sign Up</button>
+                    </div>
+                    <!-- Logged In User View -->
+                    <div id="user-session" class="hidden">
+                        <button id="logout-button" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600" data-translate="nav_logout">Logout</button>
+                    </div>
                 </div>
-                <!-- Zilla Start -->
-                <div class="bg-white p-8 rounded-lg shadow-lg">
-                    <h3 class="text-2xl font-bold mb-4">Zilla Start</h3>
-                    <p class="text-gray-600">Master addition, subtraction, multiplication, and division.</p>
+            </nav>
+        </header>
+
+        <!-- Main Content (Gated) -->
+        <main id="main-content" class="hidden">
+            <!-- All app sections will go here after login -->
+            <section id="dashboard" class="py-12 bg-gray-100">
+                 <div class="container mx-auto px-6">
+                    <h1 class="text-3xl font-bold mb-6" data-translate="dashboard_welcome">Welcome to your Dashboard!</h1>
+                    <!-- The existing sections will be moved here -->
+                    <div id="levels" class="mb-12"></div>
+                    <div id="tutor" class="mb-12"></div>
+                    <div id="features"></div>
+                 </div>
+            </section>
+        </main>
+
+        <!-- Public Landing Page View -->
+        <div id="public-view">
+            <section class="bg-indigo-600 text-white">
+                <div class="container mx-auto px-6 py-20 text-center">
+                    <h1 class="text-5xl font-extrabold mb-4" data-translate="hero_title">Welcome to MathZilla</h1>
+                    <p class="text-xl mb-8" data-translate="hero_subtitle">Your ultimate journey to mastering mathematics, from basic arithmetic to advanced calculus.</p>
+                    <button id="get-started-button" class="bg-white text-indigo-600 font-bold py-3 px-8 rounded-full hover:bg-gray-200 transition duration-300" data-translate="hero_cta">Start Your Adventure</button>
                 </div>
-                <!-- Zilla Logic -->
-                <div class="bg-white p-8 rounded-lg shadow-lg">
-                    <h3 class="text-2xl font-bold mb-4">Zilla Logic</h3>
-                    <p class="text-gray-600">Dive into fractions, decimals, percentages, and ratios.</p>
+            </section>
+             <footer class="bg-gray-800 text-white py-10 mt-auto">
+                <div class="container mx-auto px-6 text-center">
+                    <p>&copy; 2025 MathZilla. All rights reserved.</p>
                 </div>
-                <!-- Zilla Brain -->
-                <div class="bg-white p-8 rounded-lg shadow-lg">
-                    <h3 class="text-2xl font-bold mb-4">Zilla Brain</h3>
-                    <p class="text-gray-600">Explore the world of algebra and equations.</p>
-                </div>
-                <!-- Zilla Pro -->
-                <div class="bg-white p-8 rounded-lg shadow-lg">
-                    <h3 class="text-2xl font-bold mb-4">Zilla Pro</h3>
-                    <p class="text-gray-600">Understand geometry and trigonometry.</p>
-                </div>
-                <!-- Zilla Master -->
-                <div class="bg-white p-8 rounded-lg shadow-lg">
-                    <h3 class="text-2xl font-bold mb-4">Zilla Master</h3>
-                    <p class="text-gray-600">Tackle calculus, statistics, and probability.</p>
-                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Templates for dynamic content -->
+    <template id="levels-template">
+        <h2 class="text-4xl font-bold text-center mb-12" data-translate="levels_title">Your Learning Journey</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="bg-white p-8 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300"><h3 class="text-2xl font-bold mb-4 text-indigo-600" data-translate="level_zero">Zilla Zero</h3><p class="text-gray-600" data-translate="level_zero_desc">Basic arithmetic & number sense.</p></div>
+            <div class="bg-white p-8 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300"><h3 class="text-2xl font-bold mb-4 text-indigo-600" data-translate="level_start">Zilla Start</h3><p class="text-gray-600" data-translate="level_start_desc">Addition, subtraction, multiplication, division.</p></div>
+            <div class="bg-white p-8 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300"><h3 class="text-2xl font-bold mb-4 text-indigo-600" data-translate="level_logic">Zilla Logic</h3><p class="text-gray-600" data-translate="level_logic_desc">Fractions, decimals, percentages, ratios.</p></div>
+            <div class="bg-white p-8 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300"><h3 class="text-2xl font-bold mb-4 text-indigo-600" data-translate="level_brain">Zilla Brain</h3><p class="text-gray-600" data-translate="level_brain_desc">Algebra and equations.</p></div>
+            <div class="bg-white p-8 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300"><h3 class="text-2xl font-bold mb-4 text-indigo-600" data-translate="level_pro">Zilla Pro</h3><p class="text-gray-600" data-translate="level_pro_desc">Geometry and trigonometry.</p></div>
+            <div class="bg-white p-8 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300"><h3 class="text-2xl font-bold mb-4 text-indigo-600" data-translate="level_master">Zilla Master</h3><p class="text-gray-600" data-translate="level_master_desc">Calculus, statistics, and probability.</p></div>
+        </div>
+    </template>
+
+    <template id="tutor-template">
+        <h2 class="text-4xl font-bold text-center mb-4" data-translate="tutor_title">Ask MathZilla Anything</h2>
+        <p class="text-lg text-gray-600 text-center mb-12" data-translate="tutor_subtitle">Stuck on a problem? Get a step-by-step explanation.</p>
+        <div class="max-w-3xl mx-auto bg-white rounded-lg shadow-2xl">
+            <div id="chat-window" class="p-6 h-96 overflow-y-auto space-y-4">
+                 <div class="flex justify-start"><div class="chat-bubble-ai p-4 rounded-lg max-w-md" data-translate="tutor_greeting">Hello! I'm MathZilla. Ask me any math question.</div></div>
             </div>
+            <div id="loading-indicator" class="p-6 hidden"><div class="flex justify-start items-center"><div class="chat-bubble-ai p-4 rounded-lg"><div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div></div></div></div>
+            <div class="p-6 bg-gray-100 border-t border-gray-200 rounded-b-lg"><div class="flex items-center">
+                <input type="text" id="chat-input" data-translate="tutor_placeholder" placeholder="Type your question..." class="w-full px-4 py-2 border rounded-s-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button id="send-button" class="bg-indigo-600 text-white px-6 py-2 rounded-e-md hover:bg-indigo-700" data-translate="tutor_send_btn">Send</button>
+            </div></div>
         </div>
-    </section>
+    </template>
 
-    <!-- Key Features -->
-    <section id="features" class="bg-gray-100 py-20">
-        <div class="container mx-auto px-6">
-            <h2 class="text-4xl font-bold text-center mb-12">Packed with Powerful Features</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- AI Math Tutor -->
-                <div class="text-center">
-                    <div class="bg-indigo-500 text-white w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">AI Math Tutor</h3>
-                    <p class="text-gray-600">Get instant help with our "Ask MathZilla" bot.</p>
-                </div>
-                <!-- Gamification -->
-                <div class="text-center">
-                    <div class="bg-indigo-500 text-white w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Gamification</h3>
-                    <p class="text-gray-600">Earn XP, badges, and compete in challenges.</p>
-                </div>
-                <!-- Personal Learning Paths -->
-                <div class="text-center">
-                    <div class="bg-indigo-500 text-white w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V7.618a1 1 0 01.553-.894L9 4l6 2.724a1 1 0 01.447.894v8.764a1 1 0 01-.553.894L9 20z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l6-2.724M9 12v8m0-8L3 9.276"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Personal Learning Paths</h3>
-                    <p class="text-gray-600">Customized plans based on your performance.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- Community Section -->
-    <section id="community" class="py-20">
-        <div class="container mx-auto px-6 text-center">
-            <h2 class="text-4xl font-bold mb-4">Join the MathZilla Club</h2>
-            <p class="text-xl text-gray-600 mb-8">Connect with other learners, ask questions, and grow together.</p>
-            <a href="#" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-full hover:bg-indigo-700">Explore the Community</a>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-10">
-        <div class="container mx-auto px-6 text-center">
-            <p>&copy; 2025 MathZilla. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <!-- Firebase -->
     <script type="module">
-        // Import the functions you need from the SDKs you need
+        // --- Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // TODO: Add SDKs for Firebase products that you want to use
-        // https://firebase.google.com/docs/web/setup#available-libraries
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            onAuthStateChanged,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // Your web app's Firebase configuration
+        // --- Firebase Configuration ---
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY", // Replace with your actual API key
+            apiKey: "AIzaSyA9Bm7dKDSsxS5jKYDc8er3J7Vopjq7MHU",
             authDomain: "mathzilla-30d13.firebaseapp.com",
             projectId: "mathzilla-30d13",
             storageBucket: "mathzilla-30d13.appspot.com",
             messagingSenderId: "280990702319",
             appId: "1:280990702319:web:478fa49a5f66aa83d3591a"
         };
-
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-    </script>
+        const auth = getAuth(app);
 
+        // --- Gemini API Configuration ---
+        const GEMINI_API_KEY = "AIzaSyAKONLfwJCi-zoJxvMIkuhfOVbwc2gXQGQ";
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+
+        // --- DOM Elements ---
+        const mainContent = document.getElementById('main-content');
+        const publicView = document.getElementById('public-view');
+        const authButtons = document.getElementById('auth-buttons');
+        const userSession = document.getElementById('user-session');
+        const authModal = document.getElementById('auth-modal');
+        const authForm = document.getElementById('auth-form');
+        const authError = document.getElementById('auth-error');
+        
+        // --- Translation Data ---
+        const translations = {
+            en: {
+                nav_login: "Login", nav_signup: "Sign Up", nav_logout: "Logout",
+                hero_title: "Welcome to MathZilla", hero_subtitle: "Your ultimate journey to mastering mathematics, from basic arithmetic to advanced calculus.", hero_cta: "Start Your Adventure",
+                auth_login_title: "Login to MathZilla", auth_signup_title: "Create an Account", auth_email: "Email Address", auth_password: "Password", auth_login_btn: "Login", auth_signup_btn: "Sign Up", auth_no_account: "Don't have an account?", auth_have_account: "Already have an account?", auth_signup_link: "Sign up", auth_login_link: "Login",
+                dashboard_welcome: "Welcome to your Dashboard!",
+                levels_title: "Your Learning Journey", level_zero: "Zilla Zero", level_zero_desc: "Basic arithmetic & number sense.", level_start: "Zilla Start", level_start_desc: "Addition, subtraction, multiplication, division.", level_logic: "Zilla Logic", level_logic_desc: "Fractions, decimals, percentages, ratios.", level_brain: "Zilla Brain", level_brain_desc: "Algebra and equations.", level_pro: "Zilla Pro", level_pro_desc: "Geometry and trigonometry.", level_master: "Zilla Master", level_master_desc: "Calculus, statistics, and probability.",
+                tutor_title: "Ask MathZilla Anything", tutor_subtitle: "Stuck on a problem? Get a step-by-step explanation.", tutor_greeting: "Hello! I'm MathZilla. Ask me any math question.", tutor_placeholder: "Type your question...", tutor_send_btn: "Send"
+            },
+            ar: {
+                nav_login: "تسجيل الدخول", nav_signup: "إنشاء حساب", nav_logout: "تسجيل الخروج",
+                hero_title: "أهلاً بك في ماث-زيلا", hero_subtitle: "رحلتك المثالية لإتقان الرياضيات، من الحساب الأساسي إلى حساب التفاضل والتكامل المتقدم.", hero_cta: "ابدأ مغامرتك",
+                auth_login_title: "تسجيل الدخول إلى ماث-زيلا", auth_signup_title: "إنشاء حساب جديد", auth_email: "البريد الإلكتروني", auth_password: "كلمة المرور", auth_login_btn: "تسجيل الدخول", auth_signup_btn: "إنشاء حساب", auth_no_account: "ليس لديك حساب؟", auth_have_account: "هل لديك حساب بالفعل؟", auth_signup_link: "أنشئ حسابًا", auth_login_link: "سجل الدخول",
+                dashboard_welcome: "أهلاً بك في لوحة التحكم!",
+                levels_title: "رحلتك التعليمية", level_zero: "زيلا صفر", level_zero_desc: "الحساب الأساسي والحس العددي.", level_start: "زيلا البداية", level_start_desc: "الجمع، الطرح، الضرب، القسمة.", level_logic: "زيلا المنطق", level_logic_desc: "الكسور، الأعداد العشرية، النسب المئوية، النسب.", level_brain: "زيلا العقل", level_brain_desc: "الجبر والمعادلات.", level_pro: "زيلا المحترف", level_pro_desc: "الهندسة وحساب المثلثات.", level_master: "زيلا الخبير", level_master_desc: "حساب التفاضل والتكامل، الإحصاء، الاحتمالات.",
+                tutor_title: "اسأل ماث-زيلا أي شيء", tutor_subtitle: "هل تواجه صعوبة في حل مشكلة؟ احصل على شرح خطوة بخطوة.", tutor_greeting: "مرحباً! أنا ماث-زيلا. اسألني أي سؤال في الرياضيات.", tutor_placeholder: "اكتب سؤالك هنا...", tutor_send_btn: "إرسال"
+            }
+        };
+
+        // --- App State ---
+        let isLoginMode = true;
+
+        // --- Functions ---
+        const updateLanguage = (lang) => {
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.getAttribute('data-translate');
+                if (translations[lang][key]) {
+                    if (el.tagName === 'INPUT' && el.placeholder) {
+                        el.placeholder = translations[lang][key];
+                    } else {
+                        el.textContent = translations[lang][key];
+                    }
+                }
+            });
+        };
+
+        const showAuthModal = (loginMode = true) => {
+            isLoginMode = loginMode;
+            authModal.classList.remove('hidden');
+            authError.classList.add('hidden');
+            authForm.reset();
+            
+            const title = document.getElementById('auth-title');
+            const submitBtn = document.getElementById('auth-submit-button');
+            const toggleText = document.getElementById('auth-toggle-text');
+            const toggleBtn = document.getElementById('auth-toggle-button');
+            const lang = document.documentElement.lang;
+
+            if (isLoginMode) {
+                title.textContent = translations[lang].auth_login_title;
+                submitBtn.textContent = translations[lang].auth_login_btn;
+                toggleText.textContent = translations[lang].auth_no_account;
+                toggleBtn.textContent = translations[lang].auth_signup_link;
+            } else {
+                title.textContent = translations[lang].auth_signup_title;
+                submitBtn.textContent = translations[lang].auth_signup_btn;
+                toggleText.textContent = translations[lang].auth_have_account;
+                toggleBtn.textContent = translations[lang].auth_login_link;
+            }
+        };
+        
+        const hideAuthModal = () => authModal.classList.add('hidden');
+
+        const showAuthError = (message) => {
+            authError.textContent = message;
+            authError.classList.remove('hidden');
+        };
+
+        const setupDashboard = () => {
+            // Load content from templates into the dashboard
+            document.getElementById('levels').innerHTML = document.getElementById('levels-template').innerHTML;
+            document.getElementById('tutor').innerHTML = document.getElementById('tutor-template').innerHTML;
+            updateLanguage(document.documentElement.lang); // Re-apply translations for new content
+            
+            // Re-initialize chat functionality after loading the template
+            initializeChat();
+        };
+        
+        // --- Auth State Change Handler ---
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                // User is signed in
+                publicView.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                authButtons.classList.add('hidden');
+                userSession.classList.remove('hidden');
+                hideAuthModal();
+                setupDashboard();
+            } else {
+                // User is signed out
+                publicView.classList.remove('hidden');
+                mainContent.classList.add('hidden');
+                authButtons.classList.remove('hidden');
+                userSession.classList.add('hidden');
+            }
+        });
+
+        // --- Event Listeners ---
+        document.getElementById('language-switcher').addEventListener('change', (e) => updateLanguage(e.target.value));
+        document.getElementById('login-button').addEventListener('click', () => showAuthModal(true));
+        document.getElementById('signup-button').addEventListener('click', () => showAuthModal(false));
+        document.getElementById('get-started-button').addEventListener('click', () => showAuthModal(false));
+        document.getElementById('close-modal-button').addEventListener('click', hideAuthModal);
+        document.getElementById('auth-toggle-button').addEventListener('click', () => showAuthModal(!isLoginMode));
+        document.getElementById('logout-button').addEventListener('click', () => signOut(auth));
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            authError.classList.add('hidden');
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+                // onAuthStateChanged will handle the UI update
+            } catch (error) {
+                console.error("Authentication Error:", error.message);
+                showAuthError(error.message);
+            }
+        });
+
+        // --- Chat Functionality ---
+        function initializeChat() {
+            const chatWindow = document.getElementById('chat-window');
+            const chatInput = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-button');
+            const loadingIndicator = document.getElementById('loading-indicator');
+
+            const addMessage = (message, sender) => {
+                const bubble = document.createElement('div');
+                bubble.className = `p-4 rounded-lg max-w-md ${sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}`;
+                bubble.textContent = message;
+
+                const messageContainer = document.createElement('div');
+                messageContainer.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+                messageContainer.appendChild(bubble);
+
+                chatWindow.appendChild(messageContainer);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            };
+
+            const sendMessage = async () => {
+                const userMessage = chatInput.value.trim();
+                if (!userMessage) return;
+
+                addMessage(userMessage, 'user');
+                chatInput.value = '';
+                loadingIndicator.classList.remove('hidden');
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+
+                try {
+                    const payload = {
+                        contents: [{ role: "user", parts: [{ text: `Please act as a friendly and encouraging math tutor. Explain concepts clearly and provide step-by-step solutions if needed. Here is the user's question: "${userMessage}"` }] }]
+                    };
+                    const response = await fetch(GEMINI_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+                    const result = await response.json();
+                    const aiResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't process that.";
+                    addMessage(aiResponse, 'ai');
+                } catch (error) {
+                    console.error("Error calling Gemini API:", error);
+                    addMessage("Oops! Something went wrong. Please check the console for errors.", 'ai');
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                    chatWindow.scrollTop = chatWindow.scrollHeight;
+                }
+            };
+
+            sendButton.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+        }
+
+        // --- Initial Load ---
+        updateLanguage('en'); // Set default language on load
+
+    </script>
 </body>
 </html>
